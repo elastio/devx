@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "devx-cmd",
+    "devx-pre-commit",
+    "xtask",
+]
+
+[profile.release.package.xtask]
+opt-level = 0
