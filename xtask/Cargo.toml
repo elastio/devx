@@ -1,0 +1,19 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+authors = ["Vitalii Kryvenko <vkryvenko@elastio.com>"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+doctest = false
+
+# This dev cli should compile as fast as possible, try not to use too many dependencies
+[dependencies]
+pico-args = "0.3.3"
+anyhow = "1.0"
+
+# Yup, `devx` powers its own `xtask`
+devx-cmd = { path = "../devx-cmd" }
+devx-pre-commit = { path = "../devx-pre-commit" }
