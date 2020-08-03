@@ -3,7 +3,8 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [master]
+    # `staging` and `trying` are required for bors
+    branches: [master, staging, trying]
 
 env:
   # Just a reassurance to mitigate sudden network connection problems
