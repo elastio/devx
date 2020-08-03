@@ -1,0 +1,39 @@
+# See docs: https://embarkstudios.github.io/cargo-deny/checks/index.html
+
+[advisories]
+vulnerability = "deny"
+unmaintained = "deny"
+yanked = "deny"
+notice = "deny"
+ignore = []
+
+[bans]
+multiple-versions = "deny"
+skip = [
+    # { version = "=0.42.0", name = "crate_name_here" },
+]
+skip-tree = [
+    # { version = "=0.42.0", name = "crate_name_here", depth = 6 },
+]
+deny = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[licenses]
+unlicensed = "deny"
+copyleft = "deny"
+private = { ignore = true }
+
+# Run `cargo deny list` to see which crates use which license
+# and add them to this array if you accept them
+allow = ["MIT", "Apache-2.0"]
+deny = []
+default = "deny"
+allow-osi-fsf-free = "neither"
+
+# We want really high confidence when inferring licenses from text
+confidence-threshold = 0.93

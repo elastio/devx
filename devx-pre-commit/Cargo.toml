@@ -1,0 +1,21 @@
+[package]
+name = "devx-pre-commit"
+version = "0.1.0"
+edition = "2018"
+license = "MIT OR Apache-2.0"
+
+authors = ["Vitalii Kryvenko <vkryvenko@elastio.com>"]
+homepage = "https://github.com/elastio/devx"
+repository = "https://github.com/elastio/devx"
+keywords = ["git", "pre-commit", "hook", "rustfmt", "formatter"]
+categories = ["development-tools"]
+description = """
+    Utilities for creating git pre-commit hooks useful in rust projects
+"""
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+devx-cmd = { path = "../devx-cmd" }
+anyhow = "1.0"
