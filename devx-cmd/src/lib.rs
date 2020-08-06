@@ -18,8 +18,9 @@
 //!
 //! // Same as `run!()`, but captures the stdout and returns it as a `String`
 //! let output = read!("echo", "foo")?;
-//! assert_eq!(output, "foo\n");
+//! assert_eq!(output.trim(), "foo");
 //!
+//! # if run!("rustfmt", "--version").is_ok() {
 //! let mut cmd = cmd!("rustfmt");
 //! cmd
 //!     // Don't log command invocation and output to stderr
@@ -34,11 +35,12 @@
 //! // Read output line-by-line
 //! let first_line = child.stdout_lines().next().unwrap();
 //!
-//! assert_eq!(first_line, "fn foo() -> u32 {");
+//! assert_eq!(first_line.trim(), "fn foo() -> u32 {");
 //!
 //! // Dropping the child process `kill()`s it (and ignores the `Result`)
 //! // Use `.wait()/.read()` to wait until its completion.
 //! drop(child);
+//! # }
 //!
 //! # Ok(())
 //! # }().unwrap();
