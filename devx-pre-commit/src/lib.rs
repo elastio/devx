@@ -69,8 +69,8 @@ use std::{
     env::{self, consts},
     ffi::OsStr,
     fs,
-    path::{Path, PathBuf},
     ops::Deref,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Result;
@@ -178,11 +178,14 @@ impl PreCommitContext {
     ///
     /// [`touched_crates`]: struct.PreCommitContext.html#method.touched_crates
     pub fn rustfmt(&self) -> Result<()> {
-        cmd!(std::env::var("CARGO").as_ref().map(Deref::deref).unwrap_or("cargo"))
-            .arg("fmt")
-            .arg("--package")
-            .args(self.touched_crates())
-            .run()?;
+        cmd!(std::env::var("CARGO")
+            .as_ref()
+            .map(Deref::deref)
+            .unwrap_or("cargo"))
+        .arg("fmt")
+        .arg("--package")
+        .args(self.touched_crates())
+        .run()?;
 
         // Stage changes introduced by rustfmt:
         for changed_file_path in self.staged_rust_files() {
@@ -229,8 +232,10 @@ pub fn install_self_as_hook(project_root: &Path) -> Result<()> {
 /// [git-rev-parse]: https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---show-toplevel
 /// [cargo-workspace]: https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html
 pub fn locate_project_root() -> Result<PathBuf> {
-    let root_dir = env::var("GIT_DIR").or_else(|_| {
-        cmd!("git", "rev-parse", "--show-toplevel").echo_cmd(false).read()
-    })?;
-    Ok(root_dir.into())
+    Ok(env::var("GIT_DIR").map(Into::into).or_else(|_| {
+        cmd!("git", "rev-parse", "--show-toplevel")
+            .echo_cmd(false)
+            .read()
+            .map(|it| it.trim_end().into())
+    })?)
 }
