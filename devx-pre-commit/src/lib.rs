@@ -56,6 +56,14 @@
 //!
 //! [`cargo-xtask`]: https://github.com/matklad/cargo-xtask
 //! [`rustfmt`]: https://github.com/rust-lang/rustfmt
+#![warn(missing_docs)]
+#![warn(rust_2018_idioms)]
+// Makes rustc abort compilation if there are any unsafe blocks in the crate.
+// Presence of this annotation is picked up by tools such as cargo-geiger
+// and lets them ensure that there is indeed no unsafe code as opposed to
+// something they couldn't detect (e.g. unsafe added via macro expansion, etc).
+#![forbid(unsafe_code)]
+
 use std::{
     collections::HashSet,
     env::{self, consts},
