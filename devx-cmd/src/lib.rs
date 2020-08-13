@@ -17,6 +17,7 @@
 //! run!("ls", "-la")?;
 //!
 //! // Same as `run!()`, but captures the stdout and returns it as a `String`
+//! // there is also a `read_bytes!()` for non-utf8 sequences
 //! let output = read!("echo", "foo")?;
 //! assert_eq!(output.trim(), "foo");
 //!
@@ -46,9 +47,6 @@
 //! # }().unwrap();
 //! ```
 //!
-//! [`cmd`]: macro.cmd.html
-//! [`run`]: macro.run.html
-//! [`read`]: macro.read.html
 //! [`Cmd`]: struct.Cmd.html
 //! [`ChildProcess`]: struct.ChildProcess.html
 //! [`std::process`]: https://doc.rust-lang.org/std/process/index.html
@@ -121,6 +119,13 @@ macro_rules! run {
 #[macro_export]
 macro_rules! read {
     ($($params:tt)*) => {{ $crate::cmd!($($params)*).read() }}
+}
+
+/// Shortcut for `cmd!(...).read_bytes()`.
+/// See [`Cmd::read`](struct.Cmd.html#method.read_bytes) for details
+#[macro_export]
+macro_rules! read_bytes {
+    ($($params:tt)*) => {{ $crate::cmd!($($params)*).read_bytes() }}
 }
 
 mod error;
