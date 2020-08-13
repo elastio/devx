@@ -21,12 +21,12 @@
 //!
 //! Example dev cli:
 //! ```no_run
-//! use devx_pre_commit::{PreCommitContext, ProjectRootDir};
+//! use devx_pre_commit::{PreCommitContext, locate_project_root};
 //! use anyhow::Result;
 //! use std::{ffi::OsStr, path::PathBuf};
 //!
 //! fn run_hook() -> Result<()> {
-//!     let mut ctx = PreCommitContext::from_git_diff(ProjectRootDir::locate()?)?;
+//!     let mut ctx = PreCommitContext::from_git_diff(locate_project_root()?)?;
 //!
 //!     // Optionally filter out the files you don't want to format
 //!     ctx.retain_staged_files(|path| {
@@ -39,12 +39,12 @@
 //! }
 //!
 //! fn main() -> Result<()> {
-//!     if let Some(true) = env::args().next().map(|it| it.contains("pre-commit")) {
+//!     if let Some(true) = std::env::args().next().map(|it| it.contains("pre-commit")) {
 //!         return run_hook();
 //!     }
-//!     match env::args().nth(1).expect("No args").as_str() {
+//!     match std::env::args().nth(1).expect("No args").as_str() {
 //!         "install-pre-commit-hook" => {
-//!             devx_pre_commit::install_self_as_hook()?;
+//!             devx_pre_commit::install_self_as_hook(&locate_project_root()?)?;
 //!         }
 //!         _ => {
 //!             eprintln!("Hi, this is a dev cli, here are the available commands...");
@@ -206,8 +206,9 @@ impl PreCommitContext {
 /// It will silently overwrite the existing git pre-commit hook.
 ///
 /// [`current_exe`]: https://doc.rust-lang.org/std/env/fn.current_exe.html
-pub fn install_self_as_hook(project_root: &Path) -> Result<()> {
+pub fn install_self_as_hook(project_root: impl AsRef<Path>) -> Result<()> {
     let hook_path = project_root
+        .as_ref()
         .join(".git")
         .join("hooks")
         .join("pre-commit")
