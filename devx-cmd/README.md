@@ -1,5 +1,5 @@
 [`std::process`]: https://doc.rust-lang.org/std/process/index.html
-[crate-level-docs]: https://elastio.github.io/devx/devx_cmd/index.html
+[crate-level-docs]: https://docs.rs/devx-cmd
 
 # devx-cmd
 
