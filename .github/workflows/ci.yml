@@ -22,6 +22,11 @@ jobs:
   # Audit Rust vulnerabilities, licenses, duplicated deps as specified in `deny.toml`
   cargo-deny-check:
     runs-on: ubuntu-latest
+    # This job is optional because:
+    # - Sudden vulnerability announcement that touches us will break all ci runs
+    # - cargo-deny is mostly useful for the maintainers, we want contributors
+    #   to avoid spending much time learning this tool if this job doesn't pass
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v2
       - uses: EmbarkStudios/cargo-deny-action@v1
