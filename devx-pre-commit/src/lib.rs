@@ -182,13 +182,18 @@ impl PreCommitContext {
     ///
     /// [`touched_crates`]: struct.PreCommitContext.html#method.touched_crates
     pub fn rustfmt(&self) -> Result<()> {
+        let touched_crates = self.touched_crates();
+        if touched_crates.is_empty() {
+            return Ok(());
+        }
+
         cmd!(std::env::var("CARGO")
             .as_ref()
             .map(Deref::deref)
             .unwrap_or("cargo"))
         .arg("fmt")
         .arg("--package")
-        .args(self.touched_crates())
+        .args(touched_crates)
         .run()?;
 
         Ok(())
