@@ -9,10 +9,10 @@ homepage = "https://github.com/elastio/devx"
 repository = "https://github.com/elastio/devx"
 keywords = ["process", "cmd", "shell", "bash"]
 categories = ["development-tools"]
+readome = "README.md"
 description = """
     Convenience wrapper over std::process::Command for xtask crates
 """
-
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
