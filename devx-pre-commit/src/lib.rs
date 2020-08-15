@@ -35,6 +35,10 @@
 //!
 //!     // Run `cargo fmt` against the crates with staged rust source files
 //!     ctx.rustfmt()?;
+//!
+//!     // Stage all the changes potenitally introduced by rustfmt
+//!     // It is super-important to call this method at the end of the hook
+//!     ctx.stage_new_changes()?;
 //!     Ok(())
 //! }
 //!
@@ -187,15 +191,16 @@ impl PreCommitContext {
         .args(self.touched_crates())
         .run()?;
 
-        // Stage changes introduced by rustfmt:
-        for changed_file_path in self.staged_rust_files() {
-            run!(
-                "git",
-                "update-index",
-                "--add",
-                self.project_root.join(changed_file_path)
-            )?;
-        }
+        Ok(())
+    }
+
+    /// Pushes the changes introduced to staged files in the working tree
+    /// to the git index. It is important to call this function once you've
+    /// modified some staged files (e.g. via [`rustfmt`])
+    ///
+    /// [`rustfmt`]: struct.PreCommitContext.html#method.rustfmt
+    pub fn stage_new_changes(&self) -> Result<()> {
+        run!("git", "update-index", "--again")?;
         Ok(())
     }
 }
