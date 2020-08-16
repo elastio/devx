@@ -7,7 +7,7 @@ The project is inspired by and intended for seamless usage with [`cargo-xtask` i
 
 Most notably it provides convenient APIs for:
 - Spawing and interacting with external processes [`devx-cmd`](./devx-cmd/README.md)
-- Creating git pre-commit hooks that enforce good practices [`devx-pre-commit`](./devx-git-pre-commit/README.md)
+- Creating git pre-commit hooks that enforce good practices [`devx-pre-commit`](./devx-pre-commit/README.md)
 
 ## Goals
 
