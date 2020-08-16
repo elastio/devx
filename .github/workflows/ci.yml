@@ -5,6 +5,7 @@ on:
   push:
     # `staging` and `trying` are required for bors
     branches: [master, staging, trying]
+    tags: ['**']
 
 env:
   # Just a reassurance to mitigate sudden network connection problems
