@@ -68,3 +68,34 @@ jobs:
       - run: cargo +${{ matrix.toolchain }} build --workspace
       - run: cargo +${{ matrix.toolchain }} test --workspace --no-run
       - run: cargo +${{ matrix.toolchain }} test --workspace
+
+  rust-publish-crates:
+    # Publishing goes when we create a new git tag on the repo
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    # XXX: this job must execute only if all checks pass!
+    needs:
+      - cargo-deny-check
+      - rust-lint
+      - rust-test
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          profile: minimal
+      - name: Publish all crates
+        env:
+          # XXX: leaf crates should go first, and their reverse dependencies after them
+          CRATES: devx-cmd devx-pre-commit
+        run: |
+          set -ex
+          for crate in ${{ env.CRATES }}; do
+            echo Publishing $crate...
+
+            (cd $crate && cargo publish --token ${{ secrets.CRATES_TOKEN }})
+
+            # crates.io has eventual consistency, we wait for new version to propagate
+            echo Waiting...
+            sleep 20
+          done
