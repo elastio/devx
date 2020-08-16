@@ -9,7 +9,7 @@ homepage = "https://github.com/elastio/devx"
 repository = "https://github.com/elastio/devx"
 keywords = ["process", "cmd", "shell", "bash"]
 categories = ["development-tools"]
-readome = "README.md"
+readme = "README.md"
 description = """
     Convenience wrapper over std::process::Command for xtask crates
 """
