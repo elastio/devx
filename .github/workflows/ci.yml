@@ -83,7 +83,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: stable
           profile: minimal
       - name: Publish all crates
         env:
