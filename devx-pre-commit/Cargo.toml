@@ -18,5 +18,5 @@ description = """
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-devx-cmd = { path = "../devx-cmd" }
+devx-cmd = { version = "0.1.0", path = "../devx-cmd" }
 anyhow = "1.0"
