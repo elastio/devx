@@ -42,7 +42,7 @@ jobs:
           profile: minimal
           components: rustfmt, clippy
 
-      - run: cargo clippy --workspace
+      - run: cargo clippy --workspace --locked
       - run: cargo fmt --all -- --check
 
   rust-test:
