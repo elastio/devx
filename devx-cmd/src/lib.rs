@@ -98,11 +98,8 @@ use io::BufRead;
 #[macro_export]
 macro_rules! cmd {
     ($bin:expr $(, $arg:expr )* $(,)?) => {{
-        use ::std::{ffi::OsString, convert::Into};
         let mut cmd = $crate::Cmd::new($bin);
-        // Type annotation for the case when 0 arguments are passed
-        let args: &[OsString] = &[$(Into::<OsString>::into($arg)),*];
-        cmd.args(args);
+        $(cmd.arg($arg);)*
         cmd
     }};
 }
@@ -139,8 +136,8 @@ enum BinOrUtf8 {
 impl fmt::Display for BinOrUtf8 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BinOrUtf8::Bin(bytes) => write!(f, "[bytes]: {:?}", bytes),
-            BinOrUtf8::Utf8(utf8) => write!(f, "[utf8]: {}", utf8),
+            BinOrUtf8::Bin(bytes) => write!(f, "[bytes]:\n{:?}", bytes),
+            BinOrUtf8::Utf8(utf8) => write!(f, "[utf8]:\n{}", utf8),
         }
     }
 }
@@ -221,7 +218,12 @@ impl fmt::Display for Cmd {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", (self.0).bin.display())?;
         for arg in &(self.0).args {
-            write!(f, " {}", arg.to_string_lossy())?;
+            let arg = arg.to_string_lossy();
+            if arg.chars().any(char::is_whitespace) {
+                write!(f, " '{}'", arg)?;
+            } else {
+                write!(f, " {}", arg)?;
+            }
         }
         if let Some(dir) = &self.0.current_dir {
             write!(f, "\n(at {})", dir.display())?;
@@ -262,7 +264,11 @@ impl Cmd {
     ///
     /// [`Cmd::lookup_in_path`]: struct.Cmd.html#method.lookup_in_path
     pub fn try_at(bin_path: impl Into<PathBuf>) -> Option<Self> {
-        let bin: PathBuf = bin_path.into();
+        // Compile time: reduces monomorphizations
+        Self::_try_at(bin_path.into())
+    }
+
+    fn _try_at(bin: PathBuf) -> Option<Self> {
         let with_extension = match env::consts::EXE_EXTENSION {
             "" => None,
             it if bin.extension().is_none() => Some(bin.with_extension(it)),
@@ -465,7 +471,7 @@ impl Cmd {
         self.0
             .bin
             .components()
-            .next()
+            .last()
             .expect("Binary name must not be empty")
             .as_os_str()
             .to_string_lossy()
