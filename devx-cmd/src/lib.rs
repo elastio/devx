@@ -280,7 +280,7 @@ impl Cmd {
             .map(Self::new)
     }
 
-    /// Returns a command builder for the given `bin_name` only if the this
+    /// Returns a command builder for the given `bin_name` only if this
     /// `bin_name` is accessible trough `PATH` env variable, otherwise returns `None`
     pub fn lookup_in_path(bin_name: &str) -> Option<Self> {
         let paths = env::var_os("PATH").unwrap_or_default();
@@ -480,7 +480,7 @@ impl Cmd {
 
 /// Wraps [`std::process::Child`], kills and waits for the process on [`Drop`].
 /// It will log the fact that [`std::process::Child::kill`] was called in [`Drop`].
-/// You should use wait for the process to finish with any of the available
+/// You should use [`Child::wait`] for the process to finish with any of the available
 /// methods if you want to handle the error, otherwise it will be ignored.
 ///
 /// Beware that [`Child`] holds an invariant that is not propagated to the
@@ -488,6 +488,7 @@ impl Cmd {
 /// [`Cmd::spawn_piped`], then any methods that read the child's `stdout` will panic.
 ///
 /// [`Child`]: struct.Child.html
+/// [`Child::wait`]: struct.Child.html#method.wait
 /// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
 /// [`Drop`]: https://doc.rust-lang.org/std/ops/trait.Drop.html
 /// [`std::process::Child`]: https://doc.rust-lang.org/std/process/struct.Child.html
