@@ -2,7 +2,7 @@
 //! than [`std::process`] targeted for use in development scripts specifically.
 //!
 //! The main entities of the crate are [`Cmd`] (builder for executable
-//! commands), and [`ChildProcess`] (represents a spawned process).
+//! commands), and [`Child`] (represents a spawned process).
 //!
 //! There are also some convenient macros to reduce boilerplate.
 //! Here is the basic usage example:
@@ -48,7 +48,7 @@
 //! ```
 //!
 //! [`Cmd`]: struct.Cmd.html
-//! [`ChildProcess`]: struct.ChildProcess.html
+//! [`Child`]: struct.Child.html
 //! [`std::process`]: https://doc.rust-lang.org/std/process/index.html
 
 #![warn(missing_docs)]
@@ -166,7 +166,7 @@ impl AsRef<[u8]> for BinOrUtf8 {
 ///
 /// Example:
 /// ```
-/// # use devx_cmd::{Cmd, ChildProcess, Result};
+/// # use devx_cmd::{Cmd, Child, Result};
 /// # || -> Result<()> {
 /// #
 /// let mut cmd = Cmd::new("cargo");
@@ -186,7 +186,7 @@ impl AsRef<[u8]> for BinOrUtf8 {
 /// let () = cmd.run()?;
 /// let output: String = cmd.read()?;
 /// let output: Vec<u8> = cmd.read_bytes()?;
-/// let process: ChildProcess = cmd.spawn()?;
+/// let process: Child = cmd.spawn()?;
 /// #
 /// # Ok(())
 /// # }().unwrap();
@@ -382,53 +382,53 @@ impl Cmd {
     }
 
     /// Same as `cmd.spawn()?.wait()`
-    /// See [`ChildProcess::wait`] for details.
+    /// See [`Child::wait`] for details.
     ///
-    /// [`ChildProcess::wait`]: struct.ChildProcess.html#method.wait
+    /// [`Child::wait`]: struct.Child.html#method.wait
     pub fn run(&self) -> Result<()> {
         self.spawn()?.wait()?;
         Ok(())
     }
 
     /// Same as `cmd.spawn_piped()?.read()`
-    /// See [`ChildProcess::read`] for details.
+    /// See [`Child::read`] for details.
     ///
-    /// [`ChildProcess::read`]: struct.ChildProcess.html#method.read
+    /// [`Child::read`]: struct.Child.html#method.read
     pub fn read(&self) -> Result<String> {
         self.spawn_piped()?.read()
     }
 
     /// Same as `cmd.spawn_piped()?.read_bytes()`
-    /// See [`ChildProcess::read_bytes`] for details.
+    /// See [`Child::read_bytes`] for details.
     ///
-    /// [`ChildProcess::read_bytes`]: struct.ChildProcess.html#method.read_bytes
+    /// [`Child::read_bytes`]: struct.Child.html#method.read_bytes
     pub fn read_bytes(&self) -> Result<Vec<u8>> {
         self.spawn_piped()?.read_bytes()
     }
 
     /// Spawns a child process returning a handle to it.
     /// The child inherits both `stdout` and `stderr`.
-    /// See the docs for [`ChildProcess`] for more details.
+    /// See the docs for [`Child`] for more details.
     /// Note that reading the child process output streams will panic!
     /// If you want to read the output, see [`Cmd::spawn_piped`]
     ///
-    /// [`ChildProcess`]: struct.ChildProcess.html
+    /// [`Child`]: struct.Child.html
     /// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
-    pub fn spawn(&self) -> Result<ChildProcess> {
+    pub fn spawn(&self) -> Result<Child> {
         self.spawn_with(Stdio::inherit())
     }
 
     /// Spawns a child process returning a handle to it.
     /// Child's `stdout` will be piped for further reading from it, but
     /// `stderr` will be inherited.
-    /// See the docs for [`ChildProcess`] for more details.
+    /// See the docs for [`Child`] for more details.
     ///
-    /// [`ChildProcess`]: struct.ChildProcess.html
-    pub fn spawn_piped(&self) -> Result<ChildProcess> {
+    /// [`Child`]: struct.Child.html
+    pub fn spawn_piped(&self) -> Result<Child> {
         self.spawn_with(Stdio::piped())
     }
 
-    fn spawn_with(&self, stdout: Stdio) -> Result<ChildProcess> {
+    fn spawn_with(&self, stdout: Stdio) -> Result<Child> {
         let mut cmd = std::process::Command::new(&self.0.bin);
         cmd.args(&self.0.args)
             .stderr(Stdio::inherit())
@@ -446,7 +446,7 @@ impl Cmd {
             }
         };
 
-        let mut child = ChildProcess {
+        let mut child = Child {
             cmd: Cmd(Arc::clone(&self.0)),
             child,
         };
@@ -483,21 +483,21 @@ impl Cmd {
 /// You should use wait for the process to finish with any of the available
 /// methods if you want to handle the error, otherwise it will be ignored.
 ///
-/// Beware that [`ChildProcess`] holds an invariant that is not propagated to the
-/// type system. The invariant is that if [`ChildProcess`] was not spawned via
+/// Beware that [`Child`] holds an invariant that is not propagated to the
+/// type system. The invariant is that if [`Child`] was not spawned via
 /// [`Cmd::spawn_piped`], then any methods that read the child's `stdout` will panic.
 ///
-/// [`ChildProcess`]: struct.ChildProcess.html
+/// [`Child`]: struct.Child.html
 /// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
 /// [`Drop`]: https://doc.rust-lang.org/std/ops/trait.Drop.html
 /// [`std::process::Child`]: https://doc.rust-lang.org/std/process/struct.Child.html
 /// [`std::process::Child::kill`]: https://doc.rust-lang.org/std/process/struct.Child.html#method.kill
-pub struct ChildProcess {
+pub struct Child {
     cmd: Cmd,
     child: std::process::Child,
 }
 
-impl Drop for ChildProcess {
+impl Drop for Child {
     fn drop(&mut self) {
         match self.child.try_wait() {
             Ok(None) => {
@@ -514,14 +514,14 @@ impl Drop for ChildProcess {
     }
 }
 
-impl fmt::Display for ChildProcess {
+impl fmt::Display for Child {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let id = self.child.id();
         write!(f, "[PID {}] {}", id, self.cmd)
     }
 }
 
-impl ChildProcess {
+impl Child {
     /// Waits for the process to finish. Returns an error if the process has
     /// finished with non-zero exit code.
     ///
@@ -544,13 +544,13 @@ impl ChildProcess {
         Ok(())
     }
 
-    /// Same as [`ChildProcess::read`] but reads any bytes sequence from the
+    /// Same as [`Child::read`] but reads any bytes sequence from the
     /// child process `stdout`.
     ///
     /// # Panics
-    /// Same as for [`ChildProcess::read`].
+    /// Same as for [`Child::read`].
     ///
-    /// [`ChildProcess::read`]: struct.ChildProcess.html#method.read
+    /// [`Child::read`]: struct.Child.html#method.read
     pub fn read_bytes(self) -> Result<Vec<u8>> {
         match self.read_impl(false)? {
             BinOrUtf8::Utf8(_) => unreachable!(),
@@ -562,7 +562,7 @@ impl ChildProcess {
     /// to `stdout`. Returns an error if the process has finished with
     /// non-zero exit code. Expects a valid utf8 bytes sequence (since it returns
     /// a Rust [`String`]), if the process is not guaranteed to output valid utf8
-    /// you might want to use [`ChildProcess::read_bytes`] instead.
+    /// you might want to use [`Child::read_bytes`] instead.
     ///
     /// If [`Cmd::echo_cmd`] has been set to `true` then prints captured output to
     /// `stderr`.
@@ -573,7 +573,7 @@ impl ChildProcess {
     /// [`Cmd::spawn_piped`].
     ///
     /// [`String`]: https://doc.rust-lang.org/std/string/struct.String.html
-    /// [`ChildProcess::read_bytes`]: struct.ChildProcess.html#method.read_bytes
+    /// [`Child::read_bytes`]: struct.Child.html#method.read_bytes
     /// [`Cmd::echo_cmd`]: struct.Cmd.html#method.echo_cmd
     /// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
     pub fn read(self) -> Result<String> {
@@ -616,9 +616,9 @@ impl ChildProcess {
     ///
     /// # Panics
     /// Panics if some [`std::io::Error`] happens during the reading.
-    /// All invariants from [`ChildProcess::read_bytes`] apply here too.
+    /// All invariants from [`Child::read_bytes`] apply here too.
     ///
-    /// [`ChildProcess::read`]: struct.ChildProcess.html#method.read
+    /// [`Child::read`]: struct.Child.html#method.read
     /// [`std::io::Error`]: https://doc.rust-lang.org/std/io/struct.Error.html
     pub fn stdout_lines(&mut self) -> impl Iterator<Item = String> + '_ {
         let echo = self.cmd.0.echo_cmd;
