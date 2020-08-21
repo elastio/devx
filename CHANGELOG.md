@@ -19,7 +19,7 @@ always bumped all at once.
 
 #### devx-cmd
 
-- Renamed `ChildProcess` -> `Child` ([#22])
+- **BREAKING** Renamed `ChildProcess` -> `Child` ([#22])
 - Stdout of the child process is always logged from the new line ([#22])
 
 ## [0.1.0] - 2020-08-17
