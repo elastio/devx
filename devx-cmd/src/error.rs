@@ -1,4 +1,4 @@
-use crate::{ChildProcess, Cmd};
+use crate::{Child, Cmd};
 use std::fmt;
 
 /// Shortcut for `Result<T, devx_cmd::Error>`
@@ -12,13 +12,13 @@ impl std::error::Error for Error {}
 
 pub(crate) trait Context<T> {
     fn cmd_context(self, cmd: &Cmd) -> Result<T>;
-    fn proc_context(self, proc: &ChildProcess) -> Result<T>;
+    fn proc_context(self, proc: &Child) -> Result<T>;
 }
 impl<T, E: fmt::Display> Context<T> for Result<T, E> {
     fn cmd_context(self, cmd: &Cmd) -> Result<T> {
         self.map_err(|err| Error::cmd(cmd, &err))
     }
-    fn proc_context(self, proc: &ChildProcess) -> Result<T> {
+    fn proc_context(self, proc: &Child) -> Result<T> {
         self.map_err(|err| Error::proc(proc, &err))
     }
 }
@@ -35,7 +35,7 @@ impl Error {
     fn cmd(cmd: &Cmd, message: &dyn fmt::Display) -> Self {
         Self::new(format!("{}\nCommand: {}", message, cmd), cmd.0.echo_err)
     }
-    pub(crate) fn proc(proc: &ChildProcess, message: &dyn fmt::Display) -> Self {
+    pub(crate) fn proc(proc: &Child, message: &dyn fmt::Display) -> Self {
         Self::new(
             format!("{}\nProcess: {}", message, proc),
             proc.cmd.0.echo_err,
