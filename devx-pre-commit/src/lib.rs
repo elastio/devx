@@ -68,11 +68,11 @@
 // something they couldn't detect (e.g. unsafe added via macro expansion, etc).
 #![forbid(unsafe_code)]
 
+use fs_err as fs;
 use std::{
     collections::HashSet,
     env::{self, consts},
     ffi::OsStr,
-    fs,
     ops::Deref,
     path::{Path, PathBuf},
 };
