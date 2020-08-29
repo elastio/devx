@@ -2,6 +2,8 @@
 [0.2.0]: https://github.com/elastio/devx/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/elastio/devx/commits/v0.1.0
 
+[`log`]: https://docs.rs/log
+
 [#22]: https://github.com/elastio/devx/pull/22
 
 # Changelog
@@ -11,7 +13,13 @@ always bumped all at once.
 
 ## [Unreleased]
 
-- Soon to come...
+### Changed
+
+#### devx-cmd
+
+- Use [`log`] crate for logging
+- **BREAKING** Replaced `Cmd::echo_cmd(bool)` -> `Cmd::log_cmd(impl Into<Option<log::Level>>)`
+- **BREAKING** Replaced `Cmd::echo_err(bool)` -> `Cmd::log_err(impl Into<Option<log::Level>>)`
 
 ## [0.2.0] - 2020-08-22
 

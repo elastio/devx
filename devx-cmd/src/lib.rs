@@ -10,8 +10,11 @@
 //! ```
 //! use devx_cmd::{read, run, cmd, Cmd};
 //!
+//! // Initialize some low-overhead logger implementation for the `log` crate
+//! simple_logger::init().unwrap();
+//!
 //! # || -> devx_cmd::Result<()> {
-//! // Run the program, logging the invocation to `stderr` and waiting until it finishes
+//! // Run the program, logging the invocation via [`log`] crate and waiting until it finishes
 //! // This is used only for side-effects.
 //! // Note that if the process ends with a non-zero status code, this will return an error.
 //! run!("ls", "-la")?;
@@ -24,10 +27,10 @@
 //! # if run!("rustfmt", "--version").is_ok() {
 //! let mut cmd = cmd!("rustfmt");
 //! cmd
-//!     // Don't log command invocation and output to stderr
-//!     .echo_cmd(false)
-//!     // Don't log invocation error to stderr
-//!     .echo_err(false)
+//!     // Set `trace` level for logging command invocation and output (`debug` by default)
+//!     .log_cmd(log::Level::Trace)
+//!     // Don't log error if the command fails
+//!     .log_err(None)
 //!     .stdin("fn foo () -> u32 {42}\n");
 //!
 //! // Spawn without waiting for its completion, but capturing the stdout
@@ -50,6 +53,7 @@
 //! [`Cmd`]: struct.Cmd.html
 //! [`Child`]: struct.Child.html
 //! [`std::process`]: https://doc.rust-lang.org/std/process/index.html
+//! [`log`]: https://docs.rs/log
 
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -153,7 +157,7 @@ impl AsRef<[u8]> for BinOrUtf8 {
 
 /// More convenient version of [`std::process::Command`]. Allows for
 /// spawning child processes with or without capturing their stdout.
-/// It also comes with inbuilt logging of the invocations to `stderr`.
+/// It also comes with inbuilt logging of the invocations via [`log`] crate.
 ///
 /// All the methods for invoking a [`Cmd`]:
 /// - [`spawn_piped`](struct.Cmd.html#method.spawn_piped)
@@ -176,9 +180,9 @@ impl AsRef<[u8]> for BinOrUtf8 {
 ///     .arg2("--color", "never")
 ///     .args(&["--verbose", "--no-deps", "--all-features"])
 ///     .replace_arg(3, "--quiet")
-///     // `echo*()` are `true` by default
-///     .echo_cmd(false)
-///     .echo_err(false)
+///     // These are at `debug` and `error` level by default, `None` disables logging
+///     .log_cmd(None)
+///     .log_err(log::Level::Warn)
 ///     // repetated `stdin*()` calls overwrite previous ones
 ///     .stdin("Hi")
 ///     .stdin_bytes(vec![0, 1, 2]);
@@ -194,6 +198,7 @@ impl AsRef<[u8]> for BinOrUtf8 {
 ///
 /// [`cmd`]: macro.cmd.html
 /// [`std::process::Command`]: https://doc.rust-lang.org/std/process/struct.Command.html
+/// [`log`]: https://docs.rs/log
 #[must_use = "commands are not executed until run(), read() or spawn() is called"]
 #[derive(Clone)]
 pub struct Cmd(Arc<CmdShared>);
@@ -204,8 +209,8 @@ struct CmdShared {
     args: Vec<OsString>,
     stdin: Option<BinOrUtf8>,
     current_dir: Option<PathBuf>,
-    echo_cmd: bool,
-    echo_err: bool,
+    log_cmd: Option<log::Level>,
+    log_err: Option<log::Level>,
 }
 
 impl fmt::Debug for Cmd {
@@ -245,8 +250,8 @@ impl Cmd {
         Self(Arc::new(CmdShared {
             bin: bin.into(),
             args: Vec::new(),
-            echo_cmd: true,
-            echo_err: true,
+            log_cmd: Some(log::Level::Debug),
+            log_err: Some(log::Level::Error),
             stdin: None,
             current_dir: None,
         }))
@@ -308,22 +313,32 @@ impl Cmd {
         self
     }
 
-    /// When set to `true` the command with its arguments will be logged to `stderr`.
-    /// The command's output will also be logged to `stderr`.
+    /// When set to some `log::Level` the command with its arguments and output
+    /// will be logged via [`log`] crate.
     ///
-    /// Default: `true`
-    pub fn echo_cmd(&mut self, yes: bool) -> &mut Self {
-        self.as_mut().echo_cmd = yes;
+    /// Note that this method is independent from [`Cmd::log_err`].
+    ///
+    /// Default: `Some(log::Level::Debug)`
+    ///
+    /// [`Cmd::log_err`]: struct.Cmd.html#method.log_err
+    /// [`log`]: https://docs.rs/log
+    pub fn log_cmd(&mut self, level: impl Into<Option<log::Level>>) -> &mut Self {
+        self.as_mut().log_cmd = level.into();
         self
     }
 
-    /// When set to `true` the invocation error will be logged to `stderr`.
-    /// Set it to `false` if non-zero exit code is an expected/recoverable error
-    /// which doesn't need to be logged.
+    /// When set to some `log::Level` the invocation error will be logged.
+    /// Set it to `None` or `log::Level::Trace` if non-zero exit code is
+    /// an expected/recoverable error which doesn't need to be logged.
     ///
-    /// Default: `true`
-    pub fn echo_err(&mut self, yes: bool) -> &mut Self {
-        self.as_mut().echo_err = yes;
+    /// Note that this method is independent from [`Cmd::log_cmd`].
+    ///
+    /// Default: `Some(log::Level::Error)`
+    ///
+    /// [`Cmd::log_cmd`]: struct.Cmd.html#method.log_cmd
+    /// [`log`]: https://docs.rs/log
+    pub fn log_err(&mut self, level: impl Into<Option<log::Level>>) -> &mut Self {
+        self.as_mut().log_err = level.into();
         self
     }
 
@@ -451,8 +466,8 @@ impl Cmd {
             child,
         };
 
-        if self.0.echo_cmd {
-            eprintln!("{}", child);
+        if let Some(level) = self.0.log_cmd {
+            log::log!(level, "{}", child);
         }
 
         if let Some(stdin) = &self.0.stdin {
@@ -502,7 +517,7 @@ impl Drop for Child {
     fn drop(&mut self) {
         match self.child.try_wait() {
             Ok(None) => {
-                eprintln!("[KILL {}] {}", self.child.id(), self.cmd.bin_name());
+                log::debug!("[KILL {}] {}", self.child.id(), self.cmd.bin_name());
                 let _ = self.child.kill();
                 self.child.wait().unwrap_or_else(|err| {
                     panic!("Failed to wait for process: {}\nProcess: {}", err, self);
@@ -565,18 +580,19 @@ impl Child {
     /// a Rust [`String`]), if the process is not guaranteed to output valid utf8
     /// you might want to use [`Child::read_bytes`] instead.
     ///
-    /// If [`Cmd::echo_cmd`] has been set to `true` then prints captured output to
-    /// `stderr`.
+    /// If [`Cmd::echo_cmd`] has been set to some `log::Level` then prints captured
+    /// output via [`log`] crate.
     ///
     /// # Panics
     /// Panics if the process was spawned with non-piped `stdout`.
     /// This method is expected to be used only for processes spawned via
     /// [`Cmd::spawn_piped`].
     ///
-    /// [`String`]: https://doc.rust-lang.org/std/string/struct.String.html
     /// [`Child::read_bytes`]: struct.Child.html#method.read_bytes
     /// [`Cmd::echo_cmd`]: struct.Cmd.html#method.echo_cmd
     /// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
+    /// [`log`]: https://docs.rs/log
+    /// [`String`]: https://doc.rust-lang.org/std/string/struct.String.html
     pub fn read(self) -> Result<String> {
         match self.read_impl(true)? {
             BinOrUtf8::Utf8(it) => Ok(it),
@@ -604,8 +620,10 @@ impl Child {
 
         self.wait()?;
 
-        if self.cmd.0.echo_cmd {
-            eprintln!("[STDOUT {}] {}", self.cmd.bin_name(), &stdout);
+        if let Some(level) = self.cmd.0.log_cmd {
+            let pid = self.child.id();
+            let bin_name = self.cmd.bin_name();
+            log::log!(level, "[STDOUT {} {}] {}", pid, bin_name, &stdout);
         }
         Ok(stdout)
     }
@@ -614,15 +632,19 @@ impl Child {
     /// Beware that the iterator buffers the output, thus when the it is
     /// dropped the buffered data will be discarded and following reads
     /// won't restore it.
+    /// The returned line of output is logged via [`log`] crate according to
+    /// [`Cmd::log_cmd`] configuration.
     ///
     /// # Panics
     /// Panics if some [`std::io::Error`] happens during the reading.
     /// All invariants from [`Child::read_bytes`] apply here too.
     ///
     /// [`Child::read`]: struct.Child.html#method.read
+    /// [`Cmd::log_cmd`]: struct.Cmd.html#method.log_cmd
     /// [`std::io::Error`]: https://doc.rust-lang.org/std/io/struct.Error.html
+    /// [`log`]: https://docs.rs/log
     pub fn stdout_lines(&mut self) -> impl Iterator<Item = String> + '_ {
-        let echo = self.cmd.0.echo_cmd;
+        let log_cmd = self.cmd.0.log_cmd;
         let id = self.child.id();
         let bin_name = self.cmd.bin_name();
         let stdout = io::BufReader::new(self.child.stdout.as_mut().unwrap());
@@ -630,8 +652,8 @@ impl Child {
             .lines()
             .map(|line| line.expect("Unexpected io error"))
             .inspect(move |line| {
-                if echo {
-                    eprintln!("[{} {}] {}", id, bin_name, line);
+                if let Some(level) = log_cmd {
+                    log::log!(level, "[{} {}] {}", id, bin_name, line);
                 }
             })
     }
