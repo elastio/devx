@@ -245,7 +245,6 @@ pub fn install_self_as_hook(project_root: impl AsRef<Path>) -> Result<()> {
 pub fn locate_project_root() -> Result<PathBuf> {
     Ok(env::var("GIT_DIR").map(Into::into).or_else(|_| {
         cmd!("git", "rev-parse", "--show-toplevel")
-            .echo_cmd(false)
             .read()
             .map(|it| it.trim_end().into())
     })?)

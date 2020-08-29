@@ -24,22 +24,21 @@ impl<T, E: fmt::Display> Context<T> for Result<T, E> {
 }
 
 impl Error {
-    fn new(msg: String, echo: bool) -> Self {
+    fn new(msg: String, log_level: Option<log::Level>) -> Self {
         let me = Self(msg);
-        if echo {
-            eprintln!("[ERROR] {}", me.0);
+        if let Some(level) = log_level {
+            log::log!(level, "[ERROR] {}", me.0);
         }
         me
     }
 
     fn cmd(cmd: &Cmd, message: &dyn fmt::Display) -> Self {
-        Self::new(format!("{}\nCommand: {}", message, cmd), cmd.0.echo_err)
+        let msg = format!("{}\nCommand: {}", message, cmd);
+        Self::new(msg, cmd.0.log_err)
     }
     pub(crate) fn proc(proc: &Child, message: &dyn fmt::Display) -> Self {
-        Self::new(
-            format!("{}\nProcess: {}", message, proc),
-            proc.cmd.0.echo_err,
-        )
+        let msg = format!("{}\nProcess: {}", message, proc);
+        Self::new(msg, proc.cmd.0.log_err)
     }
 }
 
