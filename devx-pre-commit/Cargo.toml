@@ -20,3 +20,4 @@ description = """
 [dependencies]
 devx-cmd = { version = "0.2.0", path = "../devx-cmd" }
 anyhow = "1.0"
+failure = "0.1.8"
