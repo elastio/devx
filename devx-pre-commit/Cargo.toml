@@ -20,3 +20,4 @@ description = """
 [dependencies]
 devx-cmd = { version = "0.2.0", path = "../devx-cmd" }
 anyhow = "1.0"
+fs-err = "2.3"
