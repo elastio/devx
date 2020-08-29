@@ -13,7 +13,6 @@
 //! // Initialize some low-overhead logger implementation for the `log` crate
 //! simple_logger::init().unwrap();
 //!
-//! # || -> devx_cmd::Result<()> {
 //! // Run the program, logging the invocation via [`log`] crate and waiting until it finishes
 //! // This is used only for side-effects.
 //! // Note that if the process ends with a non-zero status code, this will return an error.
@@ -46,8 +45,7 @@
 //! drop(child);
 //! # }
 //!
-//! # Ok(())
-//! # }().unwrap();
+//! # Ok::<(), devx_cmd::Error>(())
 //! ```
 //!
 //! [`Cmd`]: struct.Cmd.html
@@ -86,15 +84,13 @@ use io::BufRead;
 /// ```
 /// # use devx_cmd::{cmd, Result};
 /// # use std::path::Path;
-/// # || -> Result<()> {
 /// #
 /// let path = Path::new("/foo/bar");
 ///
 /// let cmd = cmd!("echo", "hi", path);
 /// cmd.run()?;
 /// #
-/// # Ok(())
-/// # }().unwrap();
+/// # Ok::<(), devx_cmd::Error>(())
 /// ```
 ///
 /// [`Cmd`]: struct.Cmd.html
@@ -171,7 +167,6 @@ impl AsRef<[u8]> for BinOrUtf8 {
 /// Example:
 /// ```
 /// # use devx_cmd::{Cmd, Child, Result};
-/// # || -> Result<()> {
 /// #
 /// let mut cmd = Cmd::new("cargo");
 /// cmd
@@ -192,8 +187,7 @@ impl AsRef<[u8]> for BinOrUtf8 {
 /// let output: Vec<u8> = cmd.read_bytes()?;
 /// let process: Child = cmd.spawn()?;
 /// #
-/// # Ok(())
-/// # }().unwrap();
+/// # Ok::<(), devx_cmd::Error>(())
 /// ```
 ///
 /// [`cmd`]: macro.cmd.html
