@@ -1,6 +1,6 @@
 delete_merged_branches = true
 status = [
-    "cargo-deny-check",
+    "cargo-deny-check (bans licenses sources)",
     "rust-lint",
     "rust-test (ubuntu-latest, stable)",
     "rust-test (windows-latest, stable)",
