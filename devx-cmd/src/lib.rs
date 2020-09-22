@@ -11,7 +11,7 @@
 //! use devx_cmd::{read, run, cmd, Cmd};
 //!
 //! // Initialize some low-overhead logger implementation for the `log` crate
-//! simple_logger::init().unwrap();
+//! simple_logger::SimpleLogger::new().init().unwrap();
 //!
 //! // Run the program, logging the invocation via [`log`] crate and waiting until it finishes
 //! // This is used only for side-effects.
@@ -63,6 +63,7 @@
 
 use std::{
     borrow::Cow,
+    collections::HashMap,
     env,
     ffi::OsString,
     fmt,
@@ -201,6 +202,7 @@ pub struct Cmd(Arc<CmdShared>);
 struct CmdShared {
     bin: PathBuf,
     args: Vec<OsString>,
+    env: HashMap<OsString, OsString>,
     stdin: Option<BinOrUtf8>,
     current_dir: Option<PathBuf>,
     log_cmd: Option<log::Level>,
@@ -227,6 +229,9 @@ impl fmt::Display for Cmd {
         if let Some(dir) = &self.0.current_dir {
             write!(f, "\n(at {})", dir.display())?;
         }
+        if !self.0.env.is_empty() {
+            write!(f, "\nenv: {:#?}", self.0.env)?;
+        }
         if let Some(stdin) = &self.0.stdin {
             write!(f, "\nstdin <<< {}", stdin)?;
         }
@@ -244,6 +249,7 @@ impl Cmd {
         Self(Arc::new(CmdShared {
             bin: bin.into(),
             args: Vec::new(),
+            env: HashMap::default(),
             log_cmd: Some(log::Level::Debug),
             log_err: Some(log::Level::Error),
             stdin: None,
@@ -390,6 +396,15 @@ impl Cmd {
         self
     }
 
+    /// Inserts or updates an environment variable mapping.
+    ///
+    /// Note that environment variable names are case-insensitive (but case-preserving) on Windows,
+    /// and case-sensitive on all other platforms.
+    pub fn env(&mut self, key: impl Into<OsString>, val: impl Into<OsString>) -> &mut Self {
+        self.as_mut().env.insert(key.into(), val.into());
+        self
+    }
+
     /// Same as `cmd.spawn()?.wait()`
     /// See [`Child::wait`] for details.
     ///
@@ -440,6 +455,7 @@ impl Cmd {
     fn spawn_with(&self, stdout: Stdio) -> Result<Child> {
         let mut cmd = std::process::Command::new(&self.0.bin);
         cmd.args(&self.0.args)
+            .envs(&self.0.env)
             .stderr(Stdio::inherit())
             .stdout(stdout);
 

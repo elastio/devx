@@ -18,7 +18,7 @@ SUBCOMMANDS:
     install-pre-commit-hook    Install git pre-commit hook that formats code with `cargo fmt`";
 
 fn main() -> Result<()> {
-    simple_logger::init().unwrap();
+    simple_logger::SimpleLogger::new().init().unwrap();
 
     if let Some(true) = env::args().next().map(|it| it.contains("pre-commit")) {
         return pre_commit::run_hook();
