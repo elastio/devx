@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: EmbarkStudios/cargo-deny-action@e2c4b84
+      - uses: EmbarkStudios/cargo-deny-action@fix-usage
         with:
           command: check ${{ matrix.checks }}
 
