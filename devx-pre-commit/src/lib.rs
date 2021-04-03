@@ -96,9 +96,6 @@ impl PreCommitContext {
     ///
     /// The staged files are stored in [`PreCommitContext`] as paths relative
     /// to `project_root`.
-    ///
-    /// [`PreCommitContext`]: struct.PreCommitContext.html
-    /// [`locate_project_root`]: fn.locate_project_root.html
     pub fn from_git_diff(project_root: impl Into<PathBuf>) -> Result<Self> {
         let project_root = project_root.into();
         let diff = cmd!(
@@ -125,12 +122,12 @@ impl PreCommitContext {
 
     /// Accepts a function predicate that accepts a relative path to the staged
     /// file and returns `false` if the given file should be removed from this
-    /// [`PreCommitContext`](struct.PreCommitContext.html)
+    /// [`PreCommitContext`]
     pub fn retain_staged_files(&mut self, mut f: impl FnMut(&Path) -> bool) {
         self.staged_files.retain(|it| f(it));
     }
 
-    /// Returns the names of the crates that contain [`staged_rust_files`].
+    /// Returns the names of the crates that contain [`Self::staged_rust_files()`].
     ///
     /// Warning: this heuristically looks for `Cargo.toml` files and
     /// searches for `name = "` substring in them to get the crate name
@@ -138,8 +135,6 @@ impl PreCommitContext {
     /// time and lets us save on a full-fledged toml parser dependency).
     /// This heuristic may be relaxed in the future, and it shouldn't be considered a
     /// breaking change.
-    ///
-    /// [`staged_rust_files`]: struct.PreCommitContext.html#method.staged_rust_files
     pub fn touched_crates(&self) -> Vec<String> {
         let package_dirs: HashSet<PathBuf> = self
             .staged_rust_files()
@@ -178,9 +173,7 @@ impl PreCommitContext {
         Some(cargo_toml[name..name + len].to_owned())
     }
 
-    /// Runs `cargo fmt` against the [`touched_crates`]
-    ///
-    /// [`touched_crates`]: struct.PreCommitContext.html#method.touched_crates
+    /// Runs `cargo fmt` against the [`Self::touched_crates`]
     pub fn rustfmt(&self) -> Result<()> {
         let touched_crates = self.touched_crates();
         if touched_crates.is_empty() {
@@ -201,21 +194,17 @@ impl PreCommitContext {
 
     /// Pushes the changes introduced to staged files in the working tree
     /// to the git index. It is important to call this function once you've
-    /// modified some staged files (e.g. via [`rustfmt`])
-    ///
-    /// [`rustfmt`]: struct.PreCommitContext.html#method.rustfmt
+    /// modified some staged files (e.g. via [`Self::rustfmt()`])
     pub fn stage_new_changes(&self) -> Result<()> {
         run!("git", "update-index", "--again")?;
         Ok(())
     }
 }
 
-/// Copies the [`current_exe`] file to `${project_root}/.git/hooks/pre-commit`
+/// Copies the [`std::env::current_exe()`] file to `${project_root}/.git/hooks/pre-commit`
 /// That's all you need to register a git pre-commit hook.
 ///
 /// It will silently overwrite the existing git pre-commit hook.
-///
-/// [`current_exe`]: https://doc.rust-lang.org/std/env/fn.current_exe.html
 pub fn install_self_as_hook(project_root: impl AsRef<Path>) -> Result<()> {
     let hook_path = project_root
         .as_ref()

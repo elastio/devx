@@ -47,11 +47,6 @@
 //!
 //! # Ok::<(), devx_cmd::Error>(())
 //! ```
-//!
-//! [`Cmd`]: struct.Cmd.html
-//! [`Child`]: struct.Child.html
-//! [`std::process`]: https://doc.rust-lang.org/std/process/index.html
-//! [`log`]: https://docs.rs/log
 
 #![warn(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -80,7 +75,7 @@ use io::BufRead;
 /// Create a [`Cmd`] with the given binary and arguments.
 ///
 /// The parameters to this macro may have completely different types.
-/// The single requirement for them is to implement [`Into<OsString>`][os-string]
+/// The single requirement for them is to implement [`Into`]`<`[`OsString`]`>`
 ///
 /// ```
 /// # use devx_cmd::{cmd, Result};
@@ -93,9 +88,6 @@ use io::BufRead;
 /// #
 /// # Ok::<(), devx_cmd::Error>(())
 /// ```
-///
-/// [`Cmd`]: struct.Cmd.html
-/// [os-string]: https://doc.rust-lang.org/std/ffi/struct.OsString.html
 #[macro_export]
 macro_rules! cmd {
     ($bin:expr $(, $arg:expr )* $(,)?) => {{
@@ -106,21 +98,18 @@ macro_rules! cmd {
 }
 
 /// Shortcut for `cmd!(...).run()`.
-/// See [`Cmd::run`](struct.Cmd.html#method.run) for details
 #[macro_export]
 macro_rules! run {
     ($($params:tt)*) => {{ $crate::cmd!($($params)*).run() }}
 }
 
 /// Shortcut for `cmd!(...).read()`.
-/// See [`Cmd::read`](struct.Cmd.html#method.read) for details
 #[macro_export]
 macro_rules! read {
     ($($params:tt)*) => {{ $crate::cmd!($($params)*).read() }}
 }
 
 /// Shortcut for `cmd!(...).read_bytes()`.
-/// See [`Cmd::read`](struct.Cmd.html#method.read_bytes) for details
 #[macro_export]
 macro_rules! read_bytes {
     ($($params:tt)*) => {{ $crate::cmd!($($params)*).read_bytes() }}
@@ -157,11 +146,11 @@ impl AsRef<[u8]> for BinOrUtf8 {
 /// It also comes with inbuilt logging of the invocations via [`log`] crate.
 ///
 /// All the methods for invoking a [`Cmd`]:
-/// - [`spawn_piped`](struct.Cmd.html#method.spawn_piped)
-/// - [`spawn`](struct.Cmd.html#method.spawn)
-/// - [`run`](struct.Cmd.html#method.run)
-/// - [`read`](struct.Cmd.html#method.read)
-/// - [`read_bytes`](struct.Cmd.html#method.read_bytes)
+/// - [`Cmd::spawn_piped()`]
+/// - [`Cmd::spawn()`]
+/// - [`Cmd::run()`]
+/// - [`Cmd::read()`]
+/// - [`Cmd::read_bytes()`]
 ///
 /// For more laconic usage see [`cmd`] and other macros.
 ///
@@ -190,10 +179,6 @@ impl AsRef<[u8]> for BinOrUtf8 {
 /// #
 /// # Ok::<(), devx_cmd::Error>(())
 /// ```
-///
-/// [`cmd`]: macro.cmd.html
-/// [`std::process::Command`]: https://doc.rust-lang.org/std/process/struct.Command.html
-/// [`log`]: https://docs.rs/log
 #[must_use = "commands are not executed until run(), read() or spawn() is called"]
 #[derive(Clone)]
 pub struct Cmd(Arc<CmdShared>);
@@ -265,9 +250,7 @@ impl Cmd {
     /// (retrying with `.exe` extension on windows).
     ///
     /// If you want to find a binary through `PATH`, you should use
-    /// [`Cmd::lookup_in_path`]
-    ///
-    /// [`Cmd::lookup_in_path`]: struct.Cmd.html#method.lookup_in_path
+    /// [`Cmd::lookup_in_path()`]
     pub fn try_at(bin_path: impl Into<PathBuf>) -> Option<Self> {
         // Compile time: reduces monomorphizations
         Self::_try_at(bin_path.into())
@@ -313,30 +296,24 @@ impl Cmd {
         self
     }
 
-    /// When set to some `log::Level` the command with its arguments and output
+    /// When set to some [`log::Level`] the command with its arguments and output
     /// will be logged via [`log`] crate.
     ///
-    /// Note that this method is independent from [`Cmd::log_err`].
+    /// Note that this method is independent from [`Cmd::log_err()`].
     ///
-    /// Default: `Some(log::Level::Debug)`
-    ///
-    /// [`Cmd::log_err`]: struct.Cmd.html#method.log_err
-    /// [`log`]: https://docs.rs/log
+    /// Default: `Some(`[`log::Level::Debug`]`)`
     pub fn log_cmd(&mut self, level: impl Into<Option<log::Level>>) -> &mut Self {
         self.as_mut().log_cmd = level.into();
         self
     }
 
-    /// When set to some `log::Level` the invocation error will be logged.
-    /// Set it to `None` or `log::Level::Trace` if non-zero exit code is
+    /// When set to some [`log::Level`] the invocation error will be logged.
+    /// Set it to [`None`] or [`log::Level::Trace`] if non-zero exit code is
     /// an expected/recoverable error which doesn't need to be logged.
     ///
-    /// Note that this method is independent from [`Cmd::log_cmd`].
+    /// Note that this method is independent from [`Cmd::log_cmd()`].
     ///
-    /// Default: `Some(log::Level::Error)`
-    ///
-    /// [`Cmd::log_cmd`]: struct.Cmd.html#method.log_cmd
-    /// [`log`]: https://docs.rs/log
+    /// Default: `Some(`[`log::Level::Error`]`)`
     pub fn log_err(&mut self, level: impl Into<Option<log::Level>>) -> &mut Self {
         self.as_mut().log_err = level.into();
         self
@@ -345,11 +322,9 @@ impl Cmd {
     /// Sets the string input passed to child process's `stdin`.
     /// This overwrites the previous value.
     ///
-    /// Use [`Cmd::stdin_bytes`] if you need to pass non-utf8 byte sequences.
+    /// Use [`Cmd::stdin_bytes()`] if you need to pass non-utf8 byte sequences.
     ///
     /// Nothing is written to `stdin` by default.
-    ///
-    /// [`Cmd::stdin_bytes`]: struct.Cmd.html#method.stdin_bytes
     pub fn stdin(&mut self, stdin: impl Into<String>) -> &mut Self {
         self.as_mut().stdin = Some(BinOrUtf8::Utf8(stdin.into()));
         self
@@ -406,26 +381,20 @@ impl Cmd {
     }
 
     /// Same as `cmd.spawn()?.wait()`
-    /// See [`Child::wait`] for details.
-    ///
-    /// [`Child::wait`]: struct.Child.html#method.wait
+    /// See [`Child::wait()`] for details.
     pub fn run(&self) -> Result<()> {
         self.spawn()?.wait()?;
         Ok(())
     }
 
     /// Same as `cmd.spawn_piped()?.read()`
-    /// See [`Child::read`] for details.
-    ///
-    /// [`Child::read`]: struct.Child.html#method.read
+    /// See [`Child::read()`] for details.
     pub fn read(&self) -> Result<String> {
         self.spawn_piped()?.read()
     }
 
     /// Same as `cmd.spawn_piped()?.read_bytes()`
-    /// See [`Child::read_bytes`] for details.
-    ///
-    /// [`Child::read_bytes`]: struct.Child.html#method.read_bytes
+    /// See [`Child::read_bytes()`] for details.
     pub fn read_bytes(&self) -> Result<Vec<u8>> {
         self.spawn_piped()?.read_bytes()
     }
@@ -434,10 +403,7 @@ impl Cmd {
     /// The child inherits both `stdout` and `stderr`.
     /// See the docs for [`Child`] for more details.
     /// Note that reading the child process output streams will panic!
-    /// If you want to read the output, see [`Cmd::spawn_piped`]
-    ///
-    /// [`Child`]: struct.Child.html
-    /// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
+    /// If you want to read the output, see [`Cmd::spawn_piped()`]
     pub fn spawn(&self) -> Result<Child> {
         self.spawn_with(Stdio::inherit())
     }
@@ -446,8 +412,6 @@ impl Cmd {
     /// Child's `stdout` will be piped for further reading from it, but
     /// `stderr` will be inherited.
     /// See the docs for [`Child`] for more details.
-    ///
-    /// [`Child`]: struct.Child.html
     pub fn spawn_piped(&self) -> Result<Child> {
         self.spawn_with(Stdio::piped())
     }
@@ -504,20 +468,13 @@ impl Cmd {
 }
 
 /// Wraps [`std::process::Child`], kills and waits for the process on [`Drop`].
-/// It will log the fact that [`std::process::Child::kill`] was called in [`Drop`].
-/// You should use [`Child::wait`] for the process to finish with any of the available
+/// It will log the fact that [`std::process::Child::kill()`] was called in [`Drop`].
+/// You should use [`Child::wait()`] for the process to finish with any of the available
 /// methods if you want to handle the error, otherwise it will be ignored.
 ///
 /// Beware that [`Child`] holds an invariant that is not propagated to the
 /// type system. The invariant is that if [`Child`] was not spawned via
-/// [`Cmd::spawn_piped`], then any methods that read the child's `stdout` will panic.
-///
-/// [`Child`]: struct.Child.html
-/// [`Child::wait`]: struct.Child.html#method.wait
-/// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
-/// [`Drop`]: https://doc.rust-lang.org/std/ops/trait.Drop.html
-/// [`std::process::Child`]: https://doc.rust-lang.org/std/process/struct.Child.html
-/// [`std::process::Child::kill`]: https://doc.rust-lang.org/std/process/struct.Child.html#method.kill
+/// [`Cmd::spawn_piped()`], then any methods that read the child's `stdout` will panic.
 pub struct Child {
     cmd: Cmd,
     child: std::process::Child,
@@ -551,13 +508,10 @@ impl Child {
     /// Waits for the process to finish. Returns an error if the process has
     /// finished with non-zero exit code.
     ///
-    /// You should use this method for processes spawned via [`Cmd::spawn`]
+    /// You should use this method for processes spawned via [`Cmd::spawn()`]
     /// since the output of the command won't be read and returned,
     /// but just written to this process's `stdout` (as `stdout` is inherited
-    /// with [`Cmd::spawn`])
-    ///
-    /// [`Cmd::echo_cmd`]: struct.Cmd.html#method.echo_cmd
-    /// [`Cmd::spawn`]: struct.Cmd.html#method.spawn
+    /// with [`Cmd::spawn()`])
     pub fn wait(&mut self) -> Result<()> {
         let exit_status = self.child.wait().proc_context(self)?;
 
@@ -570,13 +524,11 @@ impl Child {
         Ok(())
     }
 
-    /// Same as [`Child::read`] but reads any bytes sequence from the
+    /// Same as [`Child::read()`] but reads any bytes sequence from the
     /// child process `stdout`.
     ///
     /// # Panics
-    /// Same as for [`Child::read`].
-    ///
-    /// [`Child::read`]: struct.Child.html#method.read
+    /// Same as for [`Child::read()`].
     pub fn read_bytes(self) -> Result<Vec<u8>> {
         match self.read_impl(false)? {
             BinOrUtf8::Utf8(_) => unreachable!(),
@@ -588,21 +540,15 @@ impl Child {
     /// to `stdout`. Returns an error if the process has finished with
     /// non-zero exit code. Expects a valid utf8 bytes sequence (since it returns
     /// a Rust [`String`]), if the process is not guaranteed to output valid utf8
-    /// you might want to use [`Child::read_bytes`] instead.
+    /// you might want to use [`Child::read_bytes()`] instead.
     ///
-    /// If [`Cmd::echo_cmd`] has been set to some `log::Level` then prints captured
+    /// If [`Cmd::echo_cmd()`] has been set to some `log::Level` then prints captured
     /// output via [`log`] crate.
     ///
     /// # Panics
     /// Panics if the process was spawned with non-piped `stdout`.
     /// This method is expected to be used only for processes spawned via
-    /// [`Cmd::spawn_piped`].
-    ///
-    /// [`Child::read_bytes`]: struct.Child.html#method.read_bytes
-    /// [`Cmd::echo_cmd`]: struct.Cmd.html#method.echo_cmd
-    /// [`Cmd::spawn_piped`]: struct.Cmd.html#method.spawn_piped
-    /// [`log`]: https://docs.rs/log
-    /// [`String`]: https://doc.rust-lang.org/std/string/struct.String.html
+    /// [`Cmd::spawn_piped()`].
     pub fn read(self) -> Result<String> {
         match self.read_impl(true)? {
             BinOrUtf8::Utf8(it) => Ok(it),
@@ -643,16 +589,11 @@ impl Child {
     /// dropped the buffered data will be discarded and following reads
     /// won't restore it.
     /// The returned line of output is logged via [`log`] crate according to
-    /// [`Cmd::log_cmd`] configuration.
+    /// [`Cmd::log_cmd()`] configuration.
     ///
     /// # Panics
     /// Panics if some [`std::io::Error`] happens during the reading.
-    /// All invariants from [`Child::read_bytes`] apply here too.
-    ///
-    /// [`Child::read`]: struct.Child.html#method.read
-    /// [`Cmd::log_cmd`]: struct.Cmd.html#method.log_cmd
-    /// [`std::io::Error`]: https://doc.rust-lang.org/std/io/struct.Error.html
-    /// [`log`]: https://docs.rs/log
+    /// All invariants from [`Child::read_bytes()`] apply here too.
     pub fn stdout_lines(&mut self) -> impl Iterator<Item = String> + '_ {
         let log_cmd = self.cmd.0.log_cmd;
         let id = self.child.id();
