@@ -173,7 +173,7 @@ impl PreCommitContext {
         Some(cargo_toml[name..name + len].to_owned())
     }
 
-    /// Runs `cargo fmt` against the [`Self::touched_crates`]
+    /// Runs `cargo fmt` against the [`Self::touched_crates()`]
     pub fn rustfmt(&self) -> Result<()> {
         let touched_crates = self.touched_crates();
         if touched_crates.is_empty() {
