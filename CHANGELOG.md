@@ -5,7 +5,7 @@ always bumped all at once.
 
 ## [Unreleased]
 
-- Soon to come...
+- Migrated all documentation to intra-doc-links ([#42])
 
 ## [0.3.1] - 2020-09-22
 
@@ -55,3 +55,4 @@ always bumped all at once.
 [#30]: https://github.com/elastio/devx/pull/30
 [#31]: https://github.com/elastio/devx/pull/31
 [#35]: https://github.com/elastio/devx/pull/35
+[#42]: https://github.com/elastio/devx/pull/42
