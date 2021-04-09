@@ -1,4 +1,5 @@
 delete_merged_branches = true
+use_squash_merge = true
 status = [
     "cargo-deny-check (bans licenses sources)",
     "rust-lint",
