@@ -16,6 +16,7 @@ pub(crate) trait Context<T> {
 }
 impl<T, E: fmt::Display> Context<T> for Result<T, E> {
     fn cmd_context(self, cmd: &Cmd) -> Result<T> {
+        dbg!();
         self.map_err(|err| Error::cmd(cmd, &err))
     }
     fn proc_context(self, proc: &Child) -> Result<T> {
