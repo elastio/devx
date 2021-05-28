@@ -62,9 +62,9 @@ use std::{
     env,
     ffi::OsString,
     fmt,
-    io::{self, Read, Write},
+    io::{self, Write},
     iter,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Stdio,
     sync::Arc,
 };
@@ -148,6 +148,7 @@ impl AsRef<[u8]> for BinOrUtf8 {
 /// All the methods for invoking a [`Cmd`]:
 /// - [`Cmd::spawn_piped()`]
 /// - [`Cmd::spawn()`]
+/// - [`Cmd::spawn_with()`]
 /// - [`Cmd::run()`]
 /// - [`Cmd::read()`]
 /// - [`Cmd::read_bytes()`]
@@ -288,12 +289,22 @@ impl Cmd {
         self
     }
 
+    /// Retuns the currently configured binary path.
+    pub fn get_bin(&self) -> &Path {
+        &self.0.bin
+    }
+
     /// Set the current directory for the child process.
     ///
     /// Inherits this process current dir by default.
     pub fn current_dir(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
         self.as_mut().current_dir = Some(dir.into());
         self
+    }
+
+    /// Returns the currently configured current process directory path
+    pub fn get_current_dir(&self) -> Option<&Path> {
+        self.0.current_dir.as_deref()
     }
 
     /// When set to some [`log::Level`] the command with its arguments and output
@@ -371,6 +382,11 @@ impl Cmd {
         self
     }
 
+    /// Returns the currently configured list of command line arguments
+    pub fn get_args(&self) -> &[OsString] {
+        &self.0.args
+    }
+
     /// Inserts or updates an environment variable mapping.
     ///
     /// Note that environment variable names are case-insensitive (but case-preserving) on Windows,
@@ -405,7 +421,7 @@ impl Cmd {
     /// Note that reading the child process output streams will panic!
     /// If you want to read the output, see [`Cmd::spawn_piped()`]
     pub fn spawn(&self) -> Result<Child> {
-        self.spawn_with(Stdio::inherit())
+        self.spawn_with(Stdio::inherit(), Stdio::inherit())
     }
 
     /// Spawns a child process returning a handle to it.
@@ -413,14 +429,16 @@ impl Cmd {
     /// `stderr` will be inherited.
     /// See the docs for [`Child`] for more details.
     pub fn spawn_piped(&self) -> Result<Child> {
-        self.spawn_with(Stdio::piped())
+        self.spawn_with(Stdio::piped(), Stdio::inherit())
     }
 
-    fn spawn_with(&self, stdout: Stdio) -> Result<Child> {
+    /// More flexible version of `spawn` methods that allows you to specify
+    /// any combination of `stdout` and `stderr` conifigurations.
+    pub fn spawn_with(&self, stdout: Stdio, stderr: Stdio) -> Result<Child> {
         let mut cmd = std::process::Command::new(&self.0.bin);
         cmd.args(&self.0.args)
             .envs(&self.0.env)
-            .stderr(Stdio::inherit())
+            .stderr(stderr)
             .stdout(stdout);
 
         if let Some(dir) = &self.0.current_dir {
@@ -505,6 +523,11 @@ impl fmt::Display for Child {
 }
 
 impl Child {
+    /// Returns the [`Cmd`] that was originally used to create this [`Child`]
+    pub fn cmd(&self) -> Cmd {
+        self.cmd.clone()
+    }
+
     /// Waits for the process to finish. Returns an error if the process has
     /// finished with non-zero exit code.
     ///
@@ -529,11 +552,10 @@ impl Child {
     ///
     /// # Panics
     /// Same as for [`Child::read()`].
-    pub fn read_bytes(self) -> Result<Vec<u8>> {
-        match self.read_impl(false)? {
-            BinOrUtf8::Utf8(_) => unreachable!(),
-            BinOrUtf8::Bin(it) => Ok(it),
-        }
+    pub fn read_bytes(mut self) -> Result<Vec<u8>> {
+        let output = self.read_bytes_no_wait(Ostream::StdOut)?;
+        self.wait()?;
+        Ok(output)
     }
 
     /// Waits for the process to finish and returns all that it has written
@@ -542,46 +564,73 @@ impl Child {
     /// a Rust [`String`]), if the process is not guaranteed to output valid utf8
     /// you might want to use [`Child::read_bytes()`] instead.
     ///
-    /// If [`Cmd::echo_cmd()`] has been set to some `log::Level` then prints captured
+    /// If [`Cmd::log_cmd()`] has been set to some `log::Level` then prints captured
     /// output via [`log`] crate.
     ///
     /// # Panics
     /// Panics if the process was spawned with non-piped `stdout`.
     /// This method is expected to be used only for processes spawned via
     /// [`Cmd::spawn_piped()`].
-    pub fn read(self) -> Result<String> {
-        match self.read_impl(true)? {
-            BinOrUtf8::Utf8(it) => Ok(it),
-            BinOrUtf8::Bin(_) => unreachable!(),
-        }
+    pub fn read(mut self) -> Result<String> {
+        let output = self.read_no_wait(Ostream::StdOut)?;
+        self.wait()?;
+        Ok(output)
     }
 
-    fn read_impl(mut self, expect_utf8: bool) -> Result<BinOrUtf8> {
-        let stdout = {
-            let stdout = self
-                .child
-                .stdout
-                .as_mut()
-                .expect("use spawn_piped() to capture stdout instead of spawn()");
-            if expect_utf8 {
-                let mut out = String::new();
-                stdout.read_to_string(&mut out).proc_context(&self)?;
-                BinOrUtf8::Utf8(out)
-            } else {
-                let mut out = Vec::new();
-                stdout.read_to_end(&mut out).proc_context(&self)?;
-                BinOrUtf8::Bin(out)
+    fn expect_ostream(&mut self, ostream: Ostream) -> &mut dyn io::Read {
+        match ostream {
+            Ostream::StdOut => {
+                if let Some(ref mut it) = self.child.stdout {
+                    return it;
+                }
+            }
+            Ostream::StdErr => {
+                if let Some(ref mut it) = self.child.stderr {
+                    return it;
+                }
             }
         };
+        panic!("{} wasn't piped for {}", ostream, self);
+    }
 
-        self.wait()?;
+    /// Same as [`Child::read()`], but doesn't wait for the process to finish
+    /// and doesn't take the exit status of the process into account.
+    pub fn read_no_wait(&mut self, ostream: Ostream) -> Result<String> {
+        let mut output = String::new();
+        self.expect_ostream(ostream)
+            .read_to_string(&mut output)
+            .map_err(|err| self.io_read_err(err, ostream, "utf8"))?;
 
+        self.log_output(ostream, &format_args!("[utf8]:\n{}", output));
+
+        Ok(output)
+    }
+
+    /// Same as [`Child::read_no_wait()`], but reads raw bytes.
+    pub fn read_bytes_no_wait(&mut self, ostream: Ostream) -> Result<Vec<u8>> {
+        let mut output = Vec::new();
+        self.expect_ostream(ostream)
+            .read_to_end(&mut output)
+            .map_err(|err| self.io_read_err(err, ostream, "bytes"))?;
+
+        self.log_output(ostream, &format_args!("[bytes]:\n{:?}", output));
+
+        Ok(output)
+    }
+
+    fn io_read_err(&self, err: io::Error, ostream: Ostream, data_kind: &str) -> Error {
+        Error::proc(
+            self,
+            &format_args!("Failed to read {} from `{}`: {}", data_kind, ostream, err),
+        )
+    }
+
+    fn log_output(&self, ostream: Ostream, output: &dyn fmt::Display) {
         if let Some(level) = self.cmd.0.log_cmd {
             let pid = self.child.id();
             let bin_name = self.cmd.bin_name();
-            log::log!(level, "[STDOUT {} {}] {}", pid, bin_name, &stdout);
+            log::log!(level, "[{} {} {}] {}", ostream, pid, bin_name, output,);
         }
-        Ok(stdout)
     }
 
     /// Returns an iterator over the lines of data output to `stdout` by the child process.
@@ -607,5 +656,23 @@ impl Child {
                     log::log!(level, "[{} {}] {}", id, bin_name, line);
                 }
             })
+    }
+}
+
+/// Defines the kind of stanard process output stream.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum Ostream {
+    /// `stdout` is the default output where process outputs its payload
+    StdOut,
+    /// `stderr` is the stream for human-readable messages not inteded for automation
+    StdErr,
+}
+
+impl fmt::Display for Ostream {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Ostream::StdOut => "stdout",
+            Ostream::StdErr => "stderr",
+        })
     }
 }

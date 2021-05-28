@@ -5,6 +5,9 @@ always bumped all at once.
 
 ## [Unreleased]
 
+## [0.4.0] - 2021-05-28
+
+- Added API methods for reading `stderr` and hanling failed processes (no_wait) ([#43])
 - Migrated all documentation to intra-doc-links ([#42])
 
 ## [0.3.1] - 2020-09-22
@@ -56,3 +59,4 @@ always bumped all at once.
 [#31]: https://github.com/elastio/devx/pull/31
 [#35]: https://github.com/elastio/devx/pull/35
 [#42]: https://github.com/elastio/devx/pull/42
+[#43]: https://github.com/elastio/devx/pull/43
