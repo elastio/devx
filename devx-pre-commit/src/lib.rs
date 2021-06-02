@@ -135,22 +135,15 @@ impl PreCommitContext {
     /// time and lets us save on a full-fledged toml parser dependency).
     /// This heuristic may be relaxed in the future, and it shouldn't be considered a
     /// breaking change.
-    pub fn touched_crates(&self) -> Vec<String> {
-        let package_dirs: HashSet<PathBuf> = self
-            .staged_rust_files()
-            .filter_map(|path| {
-                let mut parents = path.components().rev();
-                parents.find(|it| it.as_os_str() == OsStr::new("src"))?;
-                Some(parents.rev().collect())
-            })
-            .collect();
+    pub fn touched_crates(&self) -> HashSet<String> {
+        self.staged_rust_files()
+            .filter_map(|rust_file_path| {
+                rust_file_path.ancestors().find_map(|candidate| {
+                    let cargo_toml = self.project_root.join(candidate).join("Cargo.toml");
+                    let cargo_toml = fs::read_to_string(&cargo_toml).ok()?;
 
-        package_dirs
-            .into_iter()
-            .filter_map(|it| {
-                let cargo_toml = self.project_root.join(it).join("Cargo.toml");
-                let cargo_toml = fs::read_to_string(&cargo_toml).ok()?;
-                Self::parse_crate_name(&cargo_toml)
+                    Self::parse_crate_name(&cargo_toml)
+                })
             })
             .collect()
     }
