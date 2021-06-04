@@ -104,5 +104,5 @@ jobs:
 
             # crates.io has eventual consistency, we wait for new version to propagate
             echo Waiting...
-            sleep 20
+            sleep 40
           done
