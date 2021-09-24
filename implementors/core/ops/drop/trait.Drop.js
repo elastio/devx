@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["devx_cmd"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.55.0/core/ops/drop/trait.Drop.html\" title=\"trait core::ops::drop::Drop\">Drop</a> for <a class=\"struct\" href=\"devx_cmd/struct.Child.html\" title=\"struct devx_cmd::Child\">Child</a>","synthetic":false,"types":["devx_cmd::Child"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

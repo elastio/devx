@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["devx_cmd"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.55.0/core/marker/trait.StructuralPartialEq.html\" title=\"trait core::marker::StructuralPartialEq\">StructuralPartialEq</a> for <a class=\"enum\" href=\"devx_cmd/enum.Ostream.html\" title=\"enum devx_cmd::Ostream\">Ostream</a>","synthetic":false,"types":["devx_cmd::Ostream"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

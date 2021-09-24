@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["devx_cmd","devx_pre_commit","xtask"];
