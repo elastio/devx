@@ -20,4 +20,4 @@ description = """
 log = "0.4"
 
 [dev-dependencies]
-simple_logger = { version = "1.9", default-features = false }
+simple_logger = { version = "3.0", default-features = false }
